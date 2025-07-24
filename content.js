@@ -10,51 +10,43 @@ function extractTranscript() {
 }
 
 function ensureTranscriptParam() {
-  const playerElement = document.querySelector(".group\\/player");
-  if (!playerElement) {
-    console.log("Player element not found");
-    return false;
-  }
+  // Find all buttons in the document
+  const allButtons = document.querySelectorAll("button");
+  console.log("Found total buttons:", allButtons.length);
 
-  const buttons = playerElement.querySelectorAll("button");
-  console.log("Found buttons in player:", buttons.length);
-
-  if (buttons.length >= 2) {
-    const transcriptButton = buttons[1];
-    const isActive = transcriptButton.getAttribute("data-active") === "true";
-
-    console.log(
-      "Transcript button data-active:",
-      transcriptButton.getAttribute("data-active")
-    );
-
-    if (!isActive) {
-      console.log("Attempting to enable transcription with multiple methods");
+  for (const button of allButtons) {
+    // Check if button has data-active=false
+    const dataActive = button.getAttribute("data-active");
+    
+    if (dataActive === "false") {
+      // Look for descendant p element with specific text
+      const pElements = button.querySelectorAll("p");
       
-      // Try multiple methods to trigger the button
-      transcriptButton.click();
-      
-      // Try dispatching a proper click event
-      const clickEvent = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window
-      });
-      transcriptButton.dispatchEvent(clickEvent);
-      
-      // Try focusing and pressing enter
-      transcriptButton.focus();
-      const enterEvent = new KeyboardEvent('keydown', {
-        key: 'Enter',
-        code: 'Enter',
-        bubbles: true
-      });
-      transcriptButton.dispatchEvent(enterEvent);
-      
-      return true; // Button interaction attempted
+      for (const p of pElements) {
+        const text = p.textContent.trim();
+        console.log("Found p element with text:", text);
+        
+        if (text === "Transcript" || text === "Transcripción") {
+          console.log("Found transcript button with data-active=false");
+          console.log("NOTE: Extensions cannot programmatically click buttons due to Chrome security restrictions");
+          console.log("Please manually click the transcript button to enable transcription");
+          
+          // Highlight the button to help user find it
+          button.style.border = "3px solid red";
+          button.style.boxShadow = "0 0 10px red";
+          
+          setTimeout(() => {
+            button.style.border = "";
+            button.style.boxShadow = "";
+          }, 5000);
+          
+          return false; // Return false since we can't actually click it
+        }
+      }
     }
   }
 
+  console.log("No transcript button with data-active=false found");
   return false; // No click needed
 }
 
