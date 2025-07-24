@@ -2,10 +2,11 @@
 
 ## Installation
 
+1. [Download](https://github.com/miguelff/tldvcheap/archive/refs/heads/main.zip) and unzip this repository
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable "Developer mode" (toggle in top-right corner)
-3. Click "Load unpacked" button
-4. Select this folder
+3. Click "Load packed" button
+4. Select the unzipped folder
 5. The extension icon will appear in your Chrome toolbar
 
 ## Configuration
