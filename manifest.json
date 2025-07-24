@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "tl;dv Transcript Summarizer",
   "version": "1.0",
-  "description": "Extract transcripts from tl;dv recordings and summarize with ChatGPT",
+  "description": "Extract transcripts from tl;dv recordings and summarize with Claude",
   "permissions": [
     "activeTab",
     "storage"
   ],
   "host_permissions": [
-    "*://tldv.io/*"
+    "*://tldv.io/*",
+    "https://api.anthropic.com/*"
   ],
   "content_scripts": [
     {
@@ -19,5 +20,6 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Summarize Transcript"
-  }
+  },
+  "options_page": "options.html"
 }
