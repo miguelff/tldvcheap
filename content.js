@@ -9,86 +9,16 @@ function extractTranscript() {
   return null;
 }
 
-function ensureTranscriptParam() {
-  // Find all buttons in the document
-  const allButtons = document.querySelectorAll("button");
-  console.log("Found total buttons:", allButtons.length);
 
-  for (const button of allButtons) {
-    // Check if button has data-active=false
-    const dataActive = button.getAttribute("data-active");
-    
-    if (dataActive === "false") {
-      // Look for descendant p element with specific text
-      const pElements = button.querySelectorAll("p");
-      
-      for (const p of pElements) {
-        const text = p.textContent.trim();
-        console.log("Found p element with text:", text);
-        
-        if (text === "Transcript" || text === "Transcripción") {
-          console.log("Found transcript button with data-active=false");
-          console.log("NOTE: Extensions cannot programmatically click buttons due to Chrome security restrictions");
-          console.log("Please manually click the transcript button to enable transcription");
-          
-          // Highlight the button to help user find it
-          button.style.border = "3px solid red";
-          button.style.boxShadow = "0 0 10px red";
-          
-          setTimeout(() => {
-            button.style.border = "";
-            button.style.boxShadow = "";
-          }, 5000);
-          
-          return false; // Return false since we can't actually click it
-        }
-      }
-    }
-  }
-
-  console.log("No transcript button with data-active=false found");
-  return false; // No click needed
-}
-
-function waitForTranscript(maxAttempts = 10, interval = 500) {
+function waitForTranscript() {
   return new Promise((resolve) => {
-    // First check if we need to click transcript button
-    const buttonClicked = ensureTranscriptParam();
-
-    let attempts = 0;
-    const startDelay = buttonClicked ? 2000 : 500; // Wait longer if button was clicked
-
-    const checkForTranscript = () => {
-      if (attempts === 0) {
-        const waitTime = buttonClicked ? 2000 : 500;
-        console.log(`Waiting ${waitTime}ms for transcript to load...`);
-        setTimeout(checkForTranscript, waitTime);
-        attempts++;
-        return;
-      }
-
-      const transcript = extractTranscript();
-      if (transcript && transcript.trim().length > 0) {
-        console.log("Transcript found with", transcript.length, "characters");
-        resolve(transcript);
-        return;
-      }
-
-      attempts++;
-      if (attempts < maxAttempts) {
-        console.log(`Attempt ${attempts}: transcript not found, retrying...`);
-        setTimeout(checkForTranscript, interval);
-      } else {
-        console.log("Max attempts reached, no transcript found");
-        resolve(null);
-      }
-    };
-
-    checkForTranscript();
+    const transcript = extractTranscript();
+    console.log("Transcript found with", transcript?.length || 0, "characters");
+    resolve(transcript);
   });
 }
 
-function showSummaryPopup(summary) {
+function showPopup(content, title = 'Result') {
   // Remove existing popup if any
   const existingPopup = document.getElementById('tldv-summary-popup');
   if (existingPopup) {
@@ -146,18 +76,18 @@ function showSummaryPopup(summary) {
   `;
 
   // Create title
-  const title = document.createElement('h3');
-  title.textContent = 'Summary';
-  title.style.cssText = `
+  const titleElement = document.createElement('h3');
+  titleElement.textContent = title;
+  titleElement.style.cssText = `
     margin: 0 0 20px 0;
     color: #333;
     font-size: 20px;
   `;
 
-  // Create summary text
-  const summaryText = document.createElement('div');
-  summaryText.textContent = summary;
-  summaryText.style.cssText = `
+  // Create content text
+  const contentText = document.createElement('div');
+  contentText.textContent = content;
+  contentText.style.cssText = `
     line-height: 1.6;
     color: #444;
     margin-bottom: 20px;
@@ -166,7 +96,7 @@ function showSummaryPopup(summary) {
 
   // Create copy status
   const copyStatus = document.createElement('div');
-  copyStatus.textContent = 'Summary copied to clipboard!';
+  copyStatus.textContent = 'Content copied to clipboard!';
   copyStatus.style.cssText = `
     background: #dff0d8;
     color: #3c763d;
@@ -178,8 +108,8 @@ function showSummaryPopup(summary) {
 
   // Assemble popup
   popup.appendChild(closeButton);
-  popup.appendChild(title);
-  popup.appendChild(summaryText);
+  popup.appendChild(titleElement);
+  popup.appendChild(contentText);
   popup.appendChild(copyStatus);
   overlay.appendChild(popup);
 
@@ -203,8 +133,8 @@ function showSummaryPopup(summary) {
   // Add to page
   document.body.appendChild(overlay);
 
-  // Summary is already copied by popup script
-  copyStatus.textContent = 'Summary copied to clipboard!';
+  // Content is already copied by popup script
+  copyStatus.textContent = 'Content copied to clipboard!';
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -215,8 +145,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
   
-  if (request.action === "showSummary") {
-    showSummaryPopup(request.summary);
+  if (request.action === "showPopup") {
+    showPopup(request.content, request.title);
     sendResponse({ success: true });
   }
 });

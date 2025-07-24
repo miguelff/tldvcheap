@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const settingsButton = document.getElementById('settings');
   const status = document.getElementById('status');
 
+  let isOperationInProgress = false;
+
   function showStatus(message, isError = false) {
     status.textContent = message;
     status.className = isError ? 'error' : 'success';
@@ -11,6 +13,12 @@ document.addEventListener('DOMContentLoaded', function() {
       status.textContent = '';
       status.className = '';
     }, 3000);
+  }
+
+  function setOperationInProgress(inProgress) {
+    isOperationInProgress = inProgress;
+    copyButton.disabled = inProgress;
+    summarizeButton.disabled = inProgress;
   }
 
   async function getTranscript() {
@@ -33,31 +41,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
   copyButton.addEventListener('click', async () => {
+    if (isOperationInProgress) return;
+    
     try {
+      setOperationInProgress(true);
       const transcript = await getTranscript();
       console.log('Copy button - transcript length:', transcript?.length || 0);
       
-      if (transcript && transcript.length >= 500) {
-        await navigator.clipboard.writeText(transcript);
-        showStatus('Transcript copied to clipboard!');
-      } else if (transcript && transcript.length < 500) {
+      if (!transcript) {
+        console.log('No transcript found');
+        showStatus('No transcript found - make sure transcripts are visible on page', true);
+        setOperationInProgress(false);
+        return;
+      }
+
+      if (transcript.length < 500) {
         console.log('Transcript too short:', transcript.length, 'characters');
         showStatus('Transcript too short (less than 500 characters)', true);
-      } else {
-        console.log('No transcript found or page reloaded');
-        showStatus('No transcript found - page may have reloaded', true);
+        setOperationInProgress(false);
+        return;
       }
+
+      const excerpt = transcript.substring(0, 50) + '...';
+      showStatus(`"${excerpt}" copied to clipboard`);
+      
+      await navigator.clipboard.writeText(transcript);
+      
+      // Show full transcript in popup
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, { 
+          action: 'showPopup', 
+          content: transcript,
+          title: 'Copied Transcript'
+        });
+      });
+      
+      setOperationInProgress(false);
     } catch (error) {
       console.error('Copy error:', error);
       showStatus('Failed to copy transcript', true);
+      setOperationInProgress(false);
     }
   });
 
   summarizeButton.addEventListener('click', async () => {
+    if (isOperationInProgress) return;
+    
     try {
+      setOperationInProgress(true);
+      
       const apiKey = await getApiKey();
       if (!apiKey) {
         showStatus('Please configure API key in settings', true);
+        setOperationInProgress(false);
         return;
       }
 
@@ -65,18 +101,22 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Summarize button - transcript length:', transcript?.length || 0);
       
       if (!transcript) {
-        console.log('No transcript found or page reloaded');
-        showStatus('No transcript found - page may have reloaded', true);
+        console.log('No transcript found');
+        showStatus('No transcript found - make sure transcripts are visible on page', true);
+        setOperationInProgress(false);
         return;
       }
 
       if (transcript.length < 500) {
         console.log('Transcript too short for summarization:', transcript.length, 'characters');
         showStatus('Transcript too short (less than 500 characters)', true);
+        setOperationInProgress(false);
         return;
       }
 
-      showStatus('Summarizing...');
+      const excerpt = transcript.substring(0, 50) + '...';
+      showStatus(`"${excerpt}" is being summarized`);
+      
       const claude = new ClaudeClient(apiKey);
       const summary = await claude.summarizeTranscript(transcript);
       
@@ -86,15 +126,18 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show summary in centered popup on the page
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { 
-          action: 'showSummary', 
-          summary: summary 
+          action: 'showPopup', 
+          content: summary,
+          title: 'Summary'
         });
       });
       
       showStatus('Summary displayed and copied!');
+      setOperationInProgress(false);
     } catch (error) {
       console.error('Summarize error:', error);
       showStatus('Failed to summarize transcript', true);
+      setOperationInProgress(false);
     }
   });
 
