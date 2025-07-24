@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "tl;dv Transcript Summarizer",
+  "version": "1.0",
+  "description": "Extract transcripts from tl;dv recordings and summarize with ChatGPT",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://tldv.io/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://tldv.io/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Summarize Transcript"
+  }
+}
